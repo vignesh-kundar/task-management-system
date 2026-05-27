@@ -175,6 +175,47 @@ class TaskServiceImplTest {
     }
 
     @Test
+    void shouldReturnFilteredAndPaginatedTasks() {
+        var dueDate = LocalDate.now().plusDays(1);
+        var task1 = Task.create("A", null, TaskStatus.PENDING, dueDate);
+        var task2 = Task.create("B", null, TaskStatus.IN_PROGRESS, dueDate);
+        var task3 = Task.create("C", null, TaskStatus.PENDING, dueDate);
+        when(taskRepository.findAllByStatusSortedByDueDate(TaskStatus.PENDING))
+                .thenReturn(List.of(task1, task3));
+
+        var result = taskService.getAllTasks(TaskStatus.PENDING, 0, 1);
+
+        assertThat(result.content()).containsExactly(task1);
+        assertThat(result.totalElements()).isEqualTo(2);
+        assertThat(result.totalPages()).isEqualTo(2);
+        assertThat(result.page()).isZero();
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldReturnAllTasksWhenStatusIsNull() {
+        var dueDate = LocalDate.now().plusDays(1);
+        var task1 = Task.create("A", null, null, dueDate);
+        var task2 = Task.create("B", null, null, dueDate);
+        when(taskRepository.findAllSortedByDueDate()).thenReturn(List.of(task1, task2));
+
+        var result = taskService.getAllTasks(null, 0, 10);
+
+        assertThat(result.content()).containsExactly(task1, task2);
+        assertThat(result.totalElements()).isEqualTo(2);
+    }
+
+    @Test
+    void shouldReturnEmptyPageWhenOffsetExceedsSize() {
+        when(taskRepository.findAllByStatusSortedByDueDate(TaskStatus.DONE)).thenReturn(List.of());
+
+        var result = taskService.getAllTasks(TaskStatus.DONE, 0, 10);
+
+        assertThat(result.content()).isEmpty();
+        assertThat(result.totalElements()).isZero();
+    }
+
+    @Test
     void shouldThrowWhenUpdateWithBlankTitle() {
         var dueDate = LocalDate.now().plusDays(1);
         var task = Task.create("Original", null, null, dueDate);

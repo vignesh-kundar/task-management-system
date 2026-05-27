@@ -1,8 +1,10 @@
 package com.vignesh.task_management_system.controller;
 
 import com.vignesh.task_management_system.dto.CreateTaskRequest;
+import com.vignesh.task_management_system.dto.PageResult;
 import com.vignesh.task_management_system.dto.TaskResponse;
 import com.vignesh.task_management_system.dto.UpdateTaskRequest;
+import com.vignesh.task_management_system.model.TaskStatus;
 import com.vignesh.task_management_system.service.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -47,10 +49,28 @@ public class TaskController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TaskResponse>> listTasks() {
-        var tasks = taskService.getAllTasks().stream()
+    public ResponseEntity<?> listTasks(
+            @RequestParam(required = false) TaskStatus status,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        boolean hasPagination = page != null && size != null;
+        if (!hasPagination) {
+            if (status == null) {
+                var tasks = taskService.getAllTasks().stream()
+                        .map(TaskResponse::from)
+                        .toList();
+                return ResponseEntity.ok(tasks);
+            }
+            var tasks = taskService.getAllTasks().stream()
+                    .filter(t -> t.getStatus() == status)
+                    .map(TaskResponse::from)
+                    .toList();
+            return ResponseEntity.ok(tasks);
+        }
+        var result = taskService.getAllTasks(status, page, size);
+        var content = result.content().stream()
                 .map(TaskResponse::from)
                 .toList();
-        return ResponseEntity.ok(tasks);
+        return ResponseEntity.ok(new PageResult<>(content, result.totalElements(), result.totalPages(), result.page(), result.size()));
     }
 }

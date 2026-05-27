@@ -1,6 +1,7 @@
 package com.vignesh.task_management_system.repository;
 
 import com.vignesh.task_management_system.model.Task;
+import com.vignesh.task_management_system.model.TaskStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -89,5 +90,46 @@ class InMemoryTaskRepositoryTest {
     @Test
     void shouldReturnFalseIfTaskDoesNotExist() {
         assertThat(repository.existsById("nonexistent")).isFalse();
+    }
+
+    @Test
+    void shouldDeleteAllTasks() {
+        repository.save(Task.create("A", null, null, LocalDate.of(2026, 6, 1)));
+        repository.save(Task.create("B", null, null, LocalDate.of(2026, 6, 2)));
+        repository.deleteAll();
+
+        assertThat(repository.findAllSortedByDueDate()).isEmpty();
+    }
+
+    @Test
+    void shouldFindTasksByStatus() {
+        var task1 = Task.create("Pending A", null, TaskStatus.PENDING, LocalDate.of(2026, 6, 1));
+        var task2 = Task.create("In Progress", null, TaskStatus.IN_PROGRESS, LocalDate.of(2026, 6, 2));
+        var task3 = Task.create("Pending B", null, TaskStatus.PENDING, LocalDate.of(2026, 6, 3));
+        var task4 = Task.create("Done", null, TaskStatus.DONE, LocalDate.of(2026, 6, 4));
+        repository.save(task1);
+        repository.save(task2);
+        repository.save(task3);
+        repository.save(task4);
+
+        var pendingTasks = repository.findAllByStatusSortedByDueDate(TaskStatus.PENDING);
+        assertThat(pendingTasks).containsExactly(task1, task3);
+
+        var inProgressTasks = repository.findAllByStatusSortedByDueDate(TaskStatus.IN_PROGRESS);
+        assertThat(inProgressTasks).containsExactly(task2);
+
+        var doneTasks = repository.findAllByStatusSortedByDueDate(TaskStatus.DONE);
+        assertThat(doneTasks).containsExactly(task4);
+    }
+
+    @Test
+    void shouldReturnAllTasksWhenStatusIsNull() {
+        var task1 = Task.create("A", null, TaskStatus.PENDING, LocalDate.of(2026, 6, 1));
+        var task2 = Task.create("B", null, TaskStatus.DONE, LocalDate.of(2026, 6, 2));
+        repository.save(task1);
+        repository.save(task2);
+
+        var all = repository.findAllByStatusSortedByDueDate(null);
+        assertThat(all).containsExactly(task1, task2);
     }
 }

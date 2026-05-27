@@ -1,6 +1,7 @@
 package com.vignesh.task_management_system.controller;
 
 import com.vignesh.task_management_system.dto.CreateTaskRequest;
+import com.vignesh.task_management_system.dto.PageResult;
 import com.vignesh.task_management_system.dto.TaskResponse;
 import com.vignesh.task_management_system.dto.UpdateTaskRequest;
 import com.vignesh.task_management_system.exception.GlobalExceptionHandler;
@@ -22,6 +23,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
@@ -154,5 +156,51 @@ class TaskControllerTest {
         mockMvc.perform(get("/tasks"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void shouldFilterTasksByStatus() throws Exception {
+        var dueDate = LocalDate.now().plusDays(1);
+        var task = Task.create("In progress task", null, TaskStatus.IN_PROGRESS, dueDate);
+        given(taskService.getAllTasks()).willReturn(List.of(task));
+
+        mockMvc.perform(get("/tasks")
+                        .param("status", "IN_PROGRESS"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    void shouldPaginateTasks() throws Exception {
+        var dueDate = LocalDate.now().plusDays(1);
+        var task = Task.create("Paginated task", null, null, dueDate);
+        var pageResult = PageResult.of(List.of(task), 10, 0, 5);
+        given(taskService.getAllTasks(any(), eq(0), eq(5))).willReturn(pageResult);
+
+        mockMvc.perform(get("/tasks")
+                        .param("page", "0")
+                        .param("size", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(5))
+                .andExpect(jsonPath("$.total_elements").value(10));
+    }
+
+    @Test
+    void shouldFilterAndPaginateTasks() throws Exception {
+        var dueDate = LocalDate.now().plusDays(1);
+        var task = Task.create("Filtered & paginated", null, TaskStatus.DONE, dueDate);
+        var pageResult = PageResult.of(List.of(task), 1, 0, 10);
+        given(taskService.getAllTasks(eq(TaskStatus.DONE), eq(0), eq(10))).willReturn(pageResult);
+
+        mockMvc.perform(get("/tasks")
+                        .param("status", "DONE")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].status").value("DONE"));
     }
 }

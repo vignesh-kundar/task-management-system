@@ -1,5 +1,6 @@
 package com.vignesh.task_management_system.service;
 
+import com.vignesh.task_management_system.dto.PageResult;
 import com.vignesh.task_management_system.exception.TaskNotFoundException;
 import com.vignesh.task_management_system.model.Task;
 import com.vignesh.task_management_system.model.TaskStatus;
@@ -57,6 +58,18 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public List<Task> getAllTasks() {
         return taskRepository.findAllSortedByDueDate();
+    }
+
+    @Override
+    public PageResult<Task> getAllTasks(TaskStatus status, int page, int size) {
+        var allMatching = status != null
+                ? taskRepository.findAllByStatusSortedByDueDate(status)
+                : taskRepository.findAllSortedByDueDate();
+        var totalElements = (long) allMatching.size();
+        var fromIndex = Math.min(page * size, allMatching.size());
+        var toIndex = Math.min(fromIndex + size, allMatching.size());
+        var content = allMatching.subList(fromIndex, toIndex);
+        return PageResult.of(content, totalElements, page, size);
     }
 
     private void validateRequiredTitle(String title) {

@@ -1,5 +1,6 @@
 package com.vignesh.task_management_system.service;
 
+import com.vignesh.task_management_system.dto.PageResult;
 import com.vignesh.task_management_system.model.Task;
 import com.vignesh.task_management_system.model.TaskStatus;
 
@@ -16,4 +17,6 @@ public interface TaskService {
     void deleteTask(String id);
 
     List<Task> getAllTasks();
+
+    PageResult<Task> getAllTasks(TaskStatus status, int page, int size);
 }
